@@ -1,11 +1,17 @@
 const HttpError = require("../models/http-error");
 const { v4: uuidv4 } = require("uuid");
 
-const PLACES = [
+let PLACES = [
   {
     id: "p1",
-    title: "Banaue",
-    description: "hagdan-hagdan palayan",
+    title: "Hagdan-hagdan palayan",
+    description:
+      "The terraces are occasionally called the Eighth Wonder of the World. It is commonly thought that the terraces were built with minimal equipment, largely by hand. ",
+    location: {
+      lat: 16.9347,
+      lng: 121.1354,
+    },
+    address: "Nueva Vizcaya - Ifugao - Mountain Province Rd, Banaue, Ifugao",
     creator: "1",
   },
 ];
@@ -28,13 +34,13 @@ const getPlaceById = (req, res, next) => {
   res.json({ place });
 };
 
-const getPlaceByUserId = (req, res, next) => {
+const getPlacesByUserId = (req, res, next) => {
   const userId = req.params.uid;
-  const place = PLACES.find((p) => {
+  const places = PLACES.filter((p) => {
     return p.creator === userId;
   });
 
-  if (!place) {
+  if (!places || PLACES.length === 0) {
     // return res.status(404).json({ message: "No record found(s)." });
 
     // const error = new Error("Could not find place of user");
@@ -44,7 +50,7 @@ const getPlaceByUserId = (req, res, next) => {
     return next(new HttpError("Could not find place of user", 404));
   }
   // console.log("GET PLACES ROUTE");
-  res.json({ place });
+  res.json({ places });
 };
 
 const createPlace = (req, res, next) => {
@@ -53,6 +59,8 @@ const createPlace = (req, res, next) => {
     id: uuidv4(),
     title,
     description,
+    location: [],
+    address,
     creator,
   };
   PLACES.push(createdPlace);
@@ -74,10 +82,14 @@ const updatePlaceById = (req, res, next) => {
 
   res.status(200).json({ place: updatePlace });
 };
-const deletePlaceById = (req, res, next) => {};
+const deletePlaceById = (req, res, next) => {
+  const placeId = req.params.pid;
+  PLACES = PLACES.filter((p) => p.id !== placeId);
+  res.status(200).json({ message: "Deleted Place" });
+};
 
 exports.getPlaceById = getPlaceById;
-exports.getPlaceByUserId = getPlaceByUserId;
+exports.getPlacesByUserId = getPlacesByUserId;
 exports.createPlace = createPlace;
 exports.updatePlaceById = updatePlaceById;
 exports.deletePlaceById = deletePlaceById;
