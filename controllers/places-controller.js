@@ -1,5 +1,6 @@
 const HttpError = require("../models/http-error");
 const { v4: uuidv4 } = require("uuid");
+const { validationResult } = require("express-validator");
 
 let PLACES = [
   {
@@ -54,12 +55,16 @@ const getPlacesByUserId = (req, res, next) => {
 };
 
 const createPlace = (req, res, next) => {
-  const { title, description, creator } = req.body;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throw new HttpError("This is a required field", 422);
+  }
+  const { title, description, coordinates, address, creator } = req.body;
   const createdPlace = {
     id: uuidv4(),
     title,
     description,
-    location: [],
+    location: coordinates,
     address,
     creator,
   };
