@@ -1,4 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
+
+const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 
 let USERS = [
@@ -15,6 +17,10 @@ const getUsers = (req, res, next) => {
 };
 
 const signup = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throw new HttpError("This is a required field", 422);
+  }
   const { name, email, password } = req.body;
   const hasUser = USERS.find((u) => u.email === email);
   if (hasUser) {
