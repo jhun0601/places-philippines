@@ -20,41 +20,44 @@ let PLACES = [
   },
 ];
 
-const getPlaceById = (req, res, next) => {
+const getPlaceById = async (req, res, next) => {
   const placeId = req.params.pid;
-  const place = PLACES.find((p) => {
-    return p.id === placeId;
-  });
-
-  if (!place) {
-    // return res.status(404).json({ message: "No record found(s)." });
-    // const error = new Error("Could not find place");
-    // error.code = 404;
-    // throw error;
-
-    throw new HttpError("Could not find place", 404);
+  let place;
+  try {
+    place = await Place.findById(placeId);
+  } catch (err) {
+    const error = new HttpError(
+      "Something went wrong, could not find a place",
+      500
+    );
+    return next(error);
   }
-  // console.log("GET PLACES ROUTE");
-  res.json({ place });
+  if (!place) {
+    const error = new HttpError("Could not find place", 404);
+    return next(error);
+  }
+  res.json({ place: place.toObject({ getters: true }) });
 };
 
-const getPlacesByUserId = (req, res, next) => {
+const getPlacesByUserId = async (req, res, next) => {
   const userId = req.params.uid;
-  const places = PLACES.filter((p) => {
-    return p.creator === userId;
-  });
+  let places;
+  try {
+    places = await Place.find({ creator: userId });
+  } catch (err) {
+    const error = new HttpError(
+      "Fetching places failed, could not find a places ",
+      500
+    );
+    return next(error);
+  }
 
-  if (!places || PLACES.length === 0) {
-    // return res.status(404).json({ message: "No record found(s)." });
-
-    // const error = new Error("Could not find place of user");
-    // error.code = 404;
-    // return next(error);
-
+  if (!places || places.length === 0) {
     return next(new HttpError("Could not find place of user", 404));
   }
-  // console.log("GET PLACES ROUTE");
-  res.json({ places });
+  res.json({
+    places: places.map((place) => place.toObject({ getters: true })),
+  });
 };
 
 const createPlace = async (req, res, next) => {
