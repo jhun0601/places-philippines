@@ -2,8 +2,10 @@ const HttpError = require("../models/http-error");
 const { v4: uuidv4 } = require("uuid");
 const { validationResult } = require("express-validator");
 const getCoordinatesByAddress = require("../util/location");
+const mongoose = require("mongoose");
 
 const Place = require("../models/place");
+const User = require("../models/user");
 
 const getPlaceById = async (req, res, next) => {
   const placeId = req.params.pid;
@@ -46,14 +48,15 @@ const getPlacesByUserId = async (req, res, next) => {
 };
 
 const createPlace = async (req, res, next) => {
+  let coordinates;
+  let user;
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new HttpError("This is a required field", 422));
   }
 
   const { title, description, address, creator } = req.body;
-
-  let coordinates;
 
   try {
     coordinates = await getCoordinatesByAddress(address);
@@ -69,10 +72,31 @@ const createPlace = async (req, res, next) => {
       "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Banaue-terrace.JPG/240px-Banaue-terrace.JPG",
     creator,
   });
+
   try {
-    await createdPlace.save();
+    user = await User.findById(creator);
   } catch (err) {
-    const error = new HttpError("Creating place failed, please try again", 500);
+    const error = new HttpError("Creating place failed. Please try again", 500);
+    return next(error);
+  }
+
+  if (!user) {
+    const error = new HttpError("Could not find user", 404);
+    return next(error);
+  }
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await createdPlace.save({ session: sess });
+    user.places.push(createdPlace);
+    console.log(user);
+    await user.save({ session: sess });
+    await sess.commitTransaction();
+  } catch (err) {
+    const error = new HttpError(
+      "Creating place failed 1, please try again",
+      500
+    );
     return next(error);
   }
 
@@ -111,15 +135,25 @@ const updatePlaceById = async (req, res, next) => {
 const deletePlaceById = async (req, res, next) => {
   const placeId = req.params.pid;
   let place;
+
   try {
-    place = await Place.findById(placeId);
+    place = await Place.findById(placeId).populate("creator");
   } catch (err) {
     const error = new HttpError("could not find place", 500);
     return next(error);
   }
+  if (!place) {
+    const error = new HttpError("Could not find place by Id", 404);
+    return next(error);
+  }
 
   try {
-    await place.remove();
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await place.remove({ session: sess });
+    place.creator.places.pull(place);
+    await place.creator.save({ session: sess });
+    await sess.commitTransaction();
   } catch (err) {
     const error = new HttpError("could not find place", 500);
     return next(error);

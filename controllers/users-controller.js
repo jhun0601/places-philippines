@@ -28,7 +28,7 @@ const signup = async (req, res, next) => {
   if (!errors.isEmpty()) {
     return next(new HttpError("This is a required field", 422));
   }
-  const { name, email, password, places } = req.body;
+  const { name, email, password } = req.body;
 
   let existingUser;
 
@@ -50,7 +50,7 @@ const signup = async (req, res, next) => {
     image:
       "https://media-exp1.licdn.com/dms/image/C5603AQERX4Lks3DnTQ/profile-displayphoto-shrink_200_200/0/1619358015036?e=1642636800&v=beta&t=CfOwIVe26Qi5YlBapKHn5f9lHcaUy4H9EzP9dvmUG9Q",
     password,
-    places,
+    places: [],
   });
 
   try {
